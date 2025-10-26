@@ -29,7 +29,7 @@ def show_main_menu():
     app.title("Menu Principal")
     tk.Label(app, text="Bem-vindo ao Menu Principal!", font=('Arial', 16), bg=BG_COLOR).pack(pady=10)
     tk.Button(app, text="Alfabeto", width=20, font=FONT, command=mostrar_alfabeto).pack(pady=5)
-    tk.Button(app, text="Frase Simples", width=20, font=FONT).pack(pady=5)
+    tk.Button(app, text="Frase Simples", width=20, font=FONT, command=mostrar_frases_simples).pack(pady=5)
     tk.Button(app, text="Tradução", width=20, font=FONT).pack(pady=5)
 
 
@@ -67,6 +67,59 @@ def mostrar_alfabeto():
         btn.grid(row=i // 6, column=i % 6, padx=5, pady=5)
 
     tk.Button(app, text="Voltar ao Menu", font=FONT, command=show_main_menu).pack(pady=10)
+
+
+# 🆕 --- NOVA FUNÇÃO: Frases Simples ---
+def mostrar_frases_simples():
+    for widget in app.winfo_children():
+        widget.destroy()
+
+    app.title("Frases Simples em Libras")
+
+    tk.Label(app, text="Selecione uma frase para ver em Libras:", font=TITLE_FONT, bg=BG_COLOR).pack(pady=10)
+
+    frame_frases = tk.Frame(app, bg=BG_COLOR)
+    frame_frases.pack(pady=10)
+
+    frame_imagem = tk.Frame(app, bg=BG_COLOR)
+    frame_imagem.pack(pady=20)
+
+    imagem_label = tk.Label(frame_imagem, bg=BG_COLOR)
+    imagem_label.pack()
+
+    # Lista de frases e nomes de arquivos correspondentes
+    frases = [
+        ("Oi, tudo bem?", "oi_tudo_bem.png"),
+        ("Eu sou surdo.", "eu_sou_surdo.png"),
+        ("Meu nome é.", "meu_nome_e.png"),
+        ("Qual seu nome?", "qual_seu_nome.png"),
+        ("Hoje estou feliz.", "hoje_eu_feliz.png"),
+        ("Prazer em conhecer você.", "prazer_em_conhecer_voce.png"),
+        ("Bom dia.", "bom_dia.png"),
+        ("Boa tarde.", "boa_tarde.png"),
+        ("Boa noite.", "boa_noite.png"),
+        ("Obrigado!", "obrigado.png")
+    ]
+
+    def mostrar_imagem(nome_arquivo):
+        caminho = os.path.join("frases_libras", nome_arquivo)
+        if os.path.exists(caminho):
+            imagem = Image.open(caminho)
+            imagem = imagem.resize((250, 250))
+            imagem_tk = ImageTk.PhotoImage(imagem)
+            imagem_label.config(image=imagem_tk, text='')
+            imagem_label.image = imagem_tk
+        else:
+            imagem_label.config(image='', text="Imagem não encontrada", font=FONT, fg="red")
+
+    # Criar um botão para cada frase
+    for frase, arquivo in frases:
+        btn = tk.Button(frame_frases, text=frase, width=30, font=FONT, bg=FRAME_COLOR,
+                        command=lambda f=arquivo: mostrar_imagem(f))
+        btn.pack(pady=4)
+
+    tk.Button(app, text="Voltar ao Menu", font=FONT, command=show_main_menu).pack(pady=20)
+# --- FIM DA NOVA FUNÇÃO ---
 
 
 def login():
@@ -107,7 +160,7 @@ def voltar_login():
     frame_login.pack(pady=10)
 
 
-# Estilo claro
+# 🎨 Estilo
 BG_COLOR = "#f5f6fa"
 FRAME_COLOR = "#ffffff"
 BTN_COLOR = "#e1e8ed"
