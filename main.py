@@ -7,6 +7,7 @@ import os
 
 BAU_PATH = "bau_de_valores.json"
 
+//teste
 
 def carregar_usuarios():
     if os.path.exists(BAU_PATH):
