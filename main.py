@@ -4,8 +4,7 @@ from tkinter import ttk
 from PIL import Image, ImageTk
 import json
 import os
-import cv2
-import mediapipe as mp
+from traducao import iniciar_traducao
 
 BAU_PATH = "bau_de_valores.json"
 
@@ -32,7 +31,7 @@ def show_main_menu():
     tk.Label(app, text="Bem-vindo ao Menu Principal!", font=('Arial', 16), bg=BG_COLOR).pack(pady=10)
     tk.Button(app, text="Alfabeto", width=20, font=FONT, command=mostrar_alfabeto).pack(pady=5)
     tk.Button(app, text="Frase Simples", width=20, font=FONT, command=mostrar_frases_simples).pack(pady=5)
-    tk.Button(app, text="Tradução", width=20, font=FONT).pack(pady=5)
+    tk.Button(app, text="Tradução", width=20, font=FONT, command=iniciar_traducao).pack(pady=5)
 
 
 def mostrar_alfabeto():
@@ -102,9 +101,6 @@ def mostrar_frases_simples():
         ("Boa noite.", "boa_noite.png"),
         ("Obrigado!", "obrigado.png")
     ]
-
-    #🆕 --- NOVA FUNÇÃO: mostrar_traducao ---
-
 
     def mostrar_imagem(nome_arquivo):
         caminho = os.path.join("frases_libras", nome_arquivo)
