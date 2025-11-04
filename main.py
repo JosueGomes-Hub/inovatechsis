@@ -4,10 +4,11 @@ from tkinter import ttk
 from PIL import Image, ImageTk
 import json
 import os
+import cv2
+import mediapipe as mp
 
 BAU_PATH = "bau_de_valores.json"
 
-//teste
 
 def carregar_usuarios():
     if os.path.exists(BAU_PATH):
@@ -101,6 +102,9 @@ def mostrar_frases_simples():
         ("Boa noite.", "boa_noite.png"),
         ("Obrigado!", "obrigado.png")
     ]
+
+    #🆕 --- NOVA FUNÇÃO: mostrar_traducao ---
+
 
     def mostrar_imagem(nome_arquivo):
         caminho = os.path.join("frases_libras", nome_arquivo)
