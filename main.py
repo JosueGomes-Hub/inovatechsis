@@ -4,7 +4,8 @@ from tkinter import ttk
 from PIL import Image, ImageTk
 import json
 import os
-from traducao import iniciar_traducao
+from traducao import abrir_camera_traducao, abrir_camera_salvar_gesto
+
 
 BAU_PATH = "bau_de_valores.json"
 
@@ -31,7 +32,8 @@ def show_main_menu():
     tk.Label(app, text="Bem-vindo ao Menu Principal!", font=('Arial', 16), bg=BG_COLOR).pack(pady=10)
     tk.Button(app, text="Alfabeto", width=20, font=FONT, command=mostrar_alfabeto).pack(pady=5)
     tk.Button(app, text="Frase Simples", width=20, font=FONT, command=mostrar_frases_simples).pack(pady=5)
-    tk.Button(app, text="Tradução", width=20, font=FONT, command=iniciar_traducao).pack(pady=5)
+    tk.Button(app, text="Tradução", width=20, font=FONT,command=abrir_camera_traducao).pack(pady=5)
+    tk.Button(app, text="Salvar Gestos", width=20, font=FONT,command=abrir_camera_salvar_gesto).pack(pady=5)
 
 
 def mostrar_alfabeto():
