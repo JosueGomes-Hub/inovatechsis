@@ -98,7 +98,7 @@ def abrir_camera_traducao():
                            min_detection_confidence=0.6,
                            min_tracking_confidence=0.6)
 
-    LIMIAR_RECONHECIMENTO = 0.30
+    LIMIAR_RECONHECIMENTO = 0.40
     gestos_recentes = []
     frase_atual = ""
 
