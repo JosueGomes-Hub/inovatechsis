@@ -4,7 +4,7 @@ from tkinter import ttk
 from PIL import Image, ImageTk
 import json
 import os
-from traducao import abrir_camera_traducao, abrir_camera_salvar_gesto
+from traducao import abrir_camera_traducao, abrir_camera_salvar_gesto, cadastrar_frases
 
 #AVISO: estou utilizando pyhton 3.11 pois o mediapipe não funciona em versões mais recentes.
 
@@ -34,6 +34,7 @@ def show_main_menu():
     tk.Button(app, text="Frase Simples", width=20, font=FONT, command=mostrar_frases_simples).pack(pady=5)
     tk.Button(app, text="Tradução", width=20, font=FONT,command=abrir_camera_traducao).pack(pady=5)
     tk.Button(app, text="Salvar Gestos", width=20, font=FONT,command=abrir_camera_salvar_gesto).pack(pady=5)
+    tk.Button(app, text="Salvar Frases", width=20, font=FONT, command=cadastrar_frases).pack(pady=5)
 
 
 def mostrar_alfabeto():

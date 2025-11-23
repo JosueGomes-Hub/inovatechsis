@@ -6,190 +6,157 @@ import json
 import os
 import math
 
-# Arquivo de gestos
+# ===============================
+# Arquivos de dados
+# ===============================
 ARQUIVO_GESTOS = "gestos_salvos.json"
+ARQUIVO_FRASES = "frases_salvas.json"
 
-# -------------------------
-# Utilitários de arquivo
-# -------------------------
+# ===============================
+# Utilitários
+# ===============================
 def carregar_gestos():
-    """Carrega e normaliza os gestos do arquivo (se existirem)."""
-    if not os.path.exists(ARQUIVO_GESTOS):
-        return {}
-    try:
-        with open(ARQUIVO_GESTOS, "r", encoding="utf-8") as f:
-            raw = json.load(f)
-    except Exception:
-        return {}
-
-    # Normaliza todos os gestos carregados para garantir formato consistente
-    gestos_norm = {}
-    for nome, coords in raw.items():
+    if os.path.exists(ARQUIVO_GESTOS):
         try:
-            gestos_norm[nome] = normalizar_landmarks(coords)
-        except Exception:
-            # se der erro, ignora esse gesto
-            continue
-    return gestos_norm
-
+            with open(ARQUIVO_GESTOS, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except:
+            return {}
+    return {}
 
 def salvar_gestos(gestos):
-    """Salva gestos (assume que já estão normalizados)."""
     with open(ARQUIVO_GESTOS, "w", encoding="utf-8") as f:
         json.dump(gestos, f, ensure_ascii=False, indent=4)
 
+def carregar_frases():
+    if os.path.exists(ARQUIVO_FRASES):
+        try:
+            with open(ARQUIVO_FRASES, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except:
+            return {"frases": []}
+    return {"frases": []}
 
-# -------------------------
-# Mediapipe config
-# -------------------------
+def salvar_frases(frases):
+    with open(ARQUIVO_FRASES, "w", encoding="utf-8") as f:
+        json.dump(frases, f, ensure_ascii=False, indent=4)
+
+# ===============================
+# Mediapipe
+# ===============================
 mp_hands = mp.solutions.hands
 mp_draw = mp.solutions.drawing_utils
 
-
-# -------------------------
-# Normalização e distância
-# -------------------------
+# ===============================
+# Normalização e Distância
+# ===============================
 def normalizar_landmarks(landmarks):
-    """
-    Normaliza uma lista de 21 landmarks [(x,y,z), ...]:
-    1) Centraliza em relação ao landmark 0 (punho)
-    2) Divide por uma medida de escala (distância média) para invariância de escala
-    Retorna lista de listas [ [x',y',z'], ... ].
-    """
     if not landmarks or len(landmarks) == 0:
         return []
 
     pts = [[float(p[0]), float(p[1]), float(p[2])] for p in landmarks]
-
-    # base: primeiro ponto (punho)
     base_x, base_y, base_z = pts[0]
+    centralizados = [[p[0]-base_x, p[1]-base_y, p[2]-base_z] for p in pts]
 
-    # centralizar
-    centralizados = [[p[0] - base_x, p[1] - base_y, p[2] - base_z] for p in pts]
+    soma = sum([math.sqrt(p[0]**2+p[1]**2+p[2]**2) for p in centralizados])
+    escala = soma / len(centralizados) if len(centralizados)>0 else 1.0
+    if escala == 0: escala = 1.0
 
-    # calcular uma medida de escala: média das distâncias ao centro
-    soma = 0.0
-    for p in centralizados:
-        soma += math.sqrt(p[0]**2 + p[1]**2 + p[2]**2)
-    escala = soma / len(centralizados) if len(centralizados) > 0 else 1.0
-
-    if escala == 0:
-        escala = 1.0
-
-    normalizados = [[p[0] / escala, p[1] / escala, p[2] / escala] for p in centralizados]
-    # converter para listas simples
+    normalizados = [[p[0]/escala, p[1]/escala, p[2]/escala] for p in centralizados]
     return normalizados
 
-
-def media_distancia(a, b):
-    """
-    Calcula distância média entre duas listas de pontos (mesmo comprimento).
-    """
-    if not a or not b or len(a) != len(b):
+def media_distancia(a,b):
+    if not a or not b or len(a)!=len(b):
         return float("inf")
-    s = 0.0
-    for p1, p2 in zip(a, b):
-        dx = p1[0] - p2[0]
-        dy = p1[1] - p2[1]
-        dz = p1[2] - p2[2]
-        s += math.sqrt(dx*dx + dy*dy + dz*dz)
-    return s / len(a)
+    s = sum([math.sqrt((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2 + (p1[2]-p2[2])**2)
+             for p1,p2 in zip(a,b)])
+    return s/len(a)
 
-
-# -------------------------
-# Reconhecimento (TRADUÇÃO)
-# -------------------------
+# ===============================
+# Função de tradução
+# ===============================
 def abrir_camera_traducao():
-    """
-    Abre janela Tkinter com câmera em cima e texto do gesto reconhecido embaixo.
-    Usa comparação por distância média entre landmarks normalizados.
-    """
-    # carregar gestos normalizados
     gestos_salvos = carregar_gestos()
+    frases_salvas = carregar_frases()
 
     janela = tk.Toplevel()
     janela.title("Tradução em Tempo Real")
     janela.geometry("900x700")
 
-    # camera label (imagem)
     lbl_camera = tk.Label(janela)
     lbl_camera.pack(pady=10)
 
-    # saída de texto (embaixo)
-    lbl_saida = tk.Label(janela, text="Gesto: ---", font=("Segoe UI", 20, "bold"))
-    lbl_saida.pack(pady=10)
+    lbl_saida_gesto = tk.Label(janela, text="Gesto: ---", font=("Segoe UI", 20, "bold"))
+    lbl_saida_gesto.pack(pady=5)
 
-    # inicializa câmera e mediapipe
+    lbl_saida_frase = tk.Label(janela, text="", font=("Segoe UI", 18, "bold"), fg="blue")
+    lbl_saida_frase.pack(pady=5)
+
     cap = cv2.VideoCapture(0)
     hands = mp_hands.Hands(max_num_hands=1,
                            model_complexity=1,
                            min_detection_confidence=0.6,
                            min_tracking_confidence=0.6)
 
-    # parâmetros ajustáveis
-    LIMIAR_RECONHECIMENTO = 0.30  # quanto menor → mais rígido; ajuste conforme necessidade
+    LIMIAR_RECONHECIMENTO = 0.30
+    gestos_recentes = []
+    frase_atual = ""
 
     def reconhecer_por_coords(coords_atual):
-        """Normaliza coords_atual e compara com gestos_salvos, retornando nome ou '---'."""
-        if not gestos_salvos:
-            return "---"
         atual_norm = normalizar_landmarks(coords_atual)
-
         melhor = None
         melhor_val = float("inf")
 
         for nome, coords_salvas in gestos_salvos.items():
-            # coords_salvas já foram normalizados ao carregar
             d = media_distancia(atual_norm, coords_salvas)
             if d < melhor_val:
                 melhor_val = d
                 melhor = nome
-
-        if melhor is None:
-            return "---"
-
         if melhor_val <= LIMIAR_RECONHECIMENTO:
             return melhor
         return "---"
 
     def atualizar():
+        nonlocal gestos_recentes, frase_atual
         ret, frame = cap.read()
         if not ret:
             janela.after(10, atualizar)
             return
 
-        frame = cv2.flip(frame, 1)
+        frame = cv2.flip(frame,1)
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
         resultado = hands.process(rgb)
         gesto_atual = "---"
 
         if resultado.multi_hand_landmarks:
-            # pega primeira mão
             hand_landmarks = resultado.multi_hand_landmarks[0]
-
-            # desenhar landmarks na imagem
-            mp_draw.draw_landmarks(
-                frame,
-                hand_landmarks,
-                mp_hands.HAND_CONNECTIONS,
-                mp_draw.DrawingSpec(color=(0, 0, 255), thickness=2, circle_radius=3),
-                mp_draw.DrawingSpec(color=(0, 255, 0), thickness=2)
-            )
-
-            # extrair coords
-            coords = [(lm.x, lm.y, lm.z) for lm in hand_landmarks.landmark]
-
-            # reconhecimento real
+            mp_draw.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+            coords = [(lm.x,lm.y,lm.z) for lm in hand_landmarks.landmark]
             gesto_atual = reconhecer_por_coords(coords)
 
-        # atualizar label de texto
-        lbl_saida.config(text=f"Gesto: {gesto_atual}")
+            # Atualiza lista de gestos recentes
+            if gesto_atual != "---":
+                if len(gestos_recentes) == 0 or gestos_recentes[-1] != gesto_atual:
+                    gestos_recentes.append(gesto_atual)
+                    # Limita tamanho da lista
+                    if len(gestos_recentes) > 10:
+                        gestos_recentes.pop(0)
 
-        # converter frame para Tkinter e mostrar
+            # Verifica se a sequência de gestos corresponde a alguma frase
+            frase_encontrada = False
+            for f in frases_salvas.get("frases", []):
+                seq = f["sequencia"]
+                if len(gestos_recentes) >= len(seq) and gestos_recentes[-len(seq):] == seq:
+                    frase_atual = f["nome"]
+                    frase_encontrada = True
+                    break
+            if not frase_encontrada:
+                frase_atual = ""
+
+        lbl_saida_gesto.config(text=f"Gesto: {gesto_atual}")
+        lbl_saida_frase.config(text=f"Frase: {frase_atual}")
+
         img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
-        # opcional: resize para garantir boa visualização dentro da janela
-        # img = img.resize((800, 560))
         imgtk = ImageTk.PhotoImage(image=img)
         lbl_camera.imgtk = imgtk
         lbl_camera.configure(image=imgtk)
@@ -199,23 +166,16 @@ def abrir_camera_traducao():
     atualizar()
 
     def fechar():
-        try:
-            cap.release()
-        except:
-            pass
+        try: cap.release()
+        except: pass
         janela.destroy()
 
     janela.protocol("WM_DELETE_WINDOW", fechar)
 
-
-# -------------------------
-# Salvar Gestos (com botão)
-# -------------------------
+# ===============================
+# Função de salvar gestos
+# ===============================
 def abrir_camera_salvar_gesto():
-    """
-    Janela para salvar gesto manualmente: mostra câmera, tem campo nome e botão 'Salvar Gesto'.
-    Salva a versão NORMALIZADA do gesto no JSON.
-    """
     janela = tk.Toplevel()
     janela.title("Salvar Novo Gesto – Libras")
     janela.geometry("900x700")
@@ -223,14 +183,14 @@ def abrir_camera_salvar_gesto():
     lbl_camera = tk.Label(janela)
     lbl_camera.pack(pady=10)
 
-    tk.Label(janela, text="Nome do gesto:", font=("Segoe UI", 12)).pack()
-    entry_nome = tk.Entry(janela, font=("Segoe UI", 12))
+    tk.Label(janela, text="Nome do gesto:", font=("Segoe UI",12)).pack()
+    entry_nome = tk.Entry(janela,font=("Segoe UI",12))
     entry_nome.pack(pady=5)
 
-    lbl_status = tk.Label(janela, text="", font=("Segoe UI", 12))
+    lbl_status = tk.Label(janela, text="", font=("Segoe UI",12))
     lbl_status.pack(pady=5)
 
-    btn_salvar = tk.Button(janela, text="Salvar Gesto", font=("Segoe UI", 12), bg="#c8e6c9")
+    btn_salvar = tk.Button(janela, text="Salvar Gesto", font=("Segoe UI",12), bg="#c8e6c9")
     btn_salvar.pack(pady=10)
 
     cap = cv2.VideoCapture(0)
@@ -239,7 +199,7 @@ def abrir_camera_salvar_gesto():
                            min_detection_confidence=0.6,
                            min_tracking_confidence=0.6)
 
-    gestos_existentes = carregar_gestos()  # carregados já normalizados
+    gestos_existentes = carregar_gestos()
     ultimo_coords = None
 
     def capturar():
@@ -248,27 +208,15 @@ def abrir_camera_salvar_gesto():
         if not ret:
             janela.after(10, capturar)
             return
-
-        frame = cv2.flip(frame, 1)
+        frame = cv2.flip(frame,1)
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
         resultado = hands.process(rgb)
         ultimo_coords = None
-
         if resultado.multi_hand_landmarks:
             hand_landmarks = resultado.multi_hand_landmarks[0]
+            mp_draw.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+            ultimo_coords = [(lm.x,lm.y,lm.z) for lm in hand_landmarks.landmark]
 
-            mp_draw.draw_landmarks(
-                frame,
-                hand_landmarks,
-                mp_hands.HAND_CONNECTIONS,
-                mp_draw.DrawingSpec(color=(0, 0, 255), thickness=2, circle_radius=3),
-                mp_draw.DrawingSpec(color=(0, 255, 0), thickness=2)
-            )
-
-            ultimo_coords = [(lm.x, lm.y, lm.z) for lm in hand_landmarks.landmark]
-
-        # mostrar frame
         img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
         imgtk = ImageTk.PhotoImage(image=img)
         lbl_camera.imgtk = imgtk
@@ -279,7 +227,7 @@ def abrir_camera_salvar_gesto():
     capturar()
 
     def salvar_click():
-        nonlocal ultimo_coords, gestos_existentes
+        nonlocal ultimo_coords
         nome = entry_nome.get().strip()
         if not nome:
             lbl_status.config(text="Digite um nome válido!", fg="red")
@@ -287,8 +235,6 @@ def abrir_camera_salvar_gesto():
         if ultimo_coords is None:
             lbl_status.config(text="Nenhuma mão detectada!", fg="red")
             return
-
-        # normaliza e salva
         normalizado = normalizar_landmarks(ultimo_coords)
         gestos_existentes[nome] = normalizado
         salvar_gestos(gestos_existentes)
@@ -297,10 +243,46 @@ def abrir_camera_salvar_gesto():
     btn_salvar.config(command=salvar_click)
 
     def fechar():
-        try:
-            cap.release()
-        except:
-            pass
+        try: cap.release()
+        except: pass
         janela.destroy()
 
     janela.protocol("WM_DELETE_WINDOW", fechar)
+
+# ===============================
+# Função de cadastrar frases
+# ===============================
+def cadastrar_frases():
+    janela = tk.Toplevel()
+    janela.title("Cadastrar Frases – Libras")
+    janela.geometry("600x400")
+
+    tk.Label(janela, text="Frase:", font=("Segoe UI",12)).pack()
+    entry_frase = tk.Entry(janela,font=("Segoe UI",12))
+    entry_frase.pack(pady=5)
+
+    tk.Label(janela, text="Sequência de gestos (separados por vírgula):", font=("Segoe UI",12)).pack()
+    entry_sequencia = tk.Entry(janela,font=("Segoe UI",12))
+    entry_sequencia.pack(pady=5)
+
+    lbl_status = tk.Label(janela, text="", font=("Segoe UI",12))
+    lbl_status.pack(pady=5)
+
+    btn_salvar = tk.Button(janela,text="Salvar Frase",font=("Segoe UI",12),bg="#c8e6c9")
+    btn_salvar.pack(pady=10)
+
+    frases = carregar_frases().get("frases", [])
+
+    def salvar_click():
+        frase = entry_frase.get().strip()
+        sequencia = [g.strip().capitalize() for g in entry_sequencia.get().split(",") if g.strip()]
+        if not frase or not sequencia:
+            lbl_status.config(text="Preencha todos os campos!", fg="red")
+            return
+        frases.append({"nome": frase, "sequencia": sequencia})
+        salvar_frases({"frases": frases})
+        lbl_status.config(text=f"Frase '{frase}' salva!", fg="green")
+        entry_frase.delete(0,tk.END)
+        entry_sequencia.delete(0,tk.END)
+
+    btn_salvar.config(command=salvar_click)
