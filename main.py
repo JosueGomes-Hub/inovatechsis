@@ -6,9 +6,9 @@ import json
 import os
 from traducao import abrir_camera_traducao, abrir_camera_salvar_gesto
 
+#AVISO: estou utilizando pyhton 3.11 pois o mediapipe não funciona em versões mais recentes.
 
 BAU_PATH = "bau_de_valores.json"
-
 
 def carregar_usuarios():
     if os.path.exists(BAU_PATH):
