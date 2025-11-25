@@ -91,7 +91,6 @@ def mostrar_frases_simples():
     imagem_label = tk.Label(frame_imagem, bg=BG_COLOR)
     imagem_label.pack()
 
-    # Lista de frases e nomes de arquivos correspondentes
     frases = [
         ("Oi, tudo bem?", "oi_tudo_bem.png"),
         ("Eu sou surdo.", "eu_sou_surdo.png"),
@@ -100,12 +99,18 @@ def mostrar_frases_simples():
         ("Hoje estou feliz.", "hoje_eu_feliz.png"),
         ("Prazer em conhecer você.", "prazer_em_conhecer_voce.png"),
         ("Bom dia.", "bom_dia.png"),
-        ("Boa tarde.", "boa_tarde.png"),
-        ("Boa noite.", "boa_noite.png"),
-        ("Obrigado!", "obrigado.png")
+        ("Boa tarde.", "boa_tarde.png")
     ]
 
-    def mostrar_imagem(nome_arquivo):
+    ultima_imagem = {"arquivo": None}  # controle para esconder a imagem
+
+    def mostrar_ou_ocultar(nome_arquivo):
+        # Se clicar no mesmo botão, oculta
+        if ultima_imagem["arquivo"] == nome_arquivo:
+            imagem_label.config(image='', text='')
+            ultima_imagem["arquivo"] = None
+            return
+
         caminho = os.path.join("frases_libras", nome_arquivo)
         if os.path.exists(caminho):
             imagem = Image.open(caminho)
@@ -113,14 +118,20 @@ def mostrar_frases_simples():
             imagem_tk = ImageTk.PhotoImage(imagem)
             imagem_label.config(image=imagem_tk, text='')
             imagem_label.image = imagem_tk
+            ultima_imagem["arquivo"] = nome_arquivo
         else:
             imagem_label.config(image='', text="Imagem não encontrada", font=FONT, fg="red")
+            ultima_imagem["arquivo"] = None
 
-    # Criar um botão para cada frase
-    for frase, arquivo in frases:
-        btn = tk.Button(frame_frases, text=frase, width=30, font=FONT, bg=FRAME_COLOR,
-                        command=lambda f=arquivo: mostrar_imagem(f))
-        btn.pack(pady=4)
+    # Criar botões em grade (4 por linha)
+    for index, (frase, arquivo) in enumerate(frases):
+        row = index // 4
+        col = index % 4
+        btn = tk.Button(
+            frame_frases, text=frase, width=20, font=FONT, bg=FRAME_COLOR,
+            command=lambda f=arquivo: mostrar_ou_ocultar(f)
+        )
+        btn.grid(row=row, column=col, padx=5, pady=5)
 
     tk.Button(app, text="Voltar ao Menu", font=FONT, command=show_main_menu).pack(pady=20)
 # --- FIM DA NOVA FUNÇÃO ---
